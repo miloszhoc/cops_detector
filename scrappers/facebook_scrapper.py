@@ -1,0 +1,2 @@
+class FacebookScrapper(object):
+    pass
