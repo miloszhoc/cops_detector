@@ -31,4 +31,4 @@ for i, file in enumerate(files):
         json_f.extend(json_data)
 
 with open(f'test_data/joined_data.json', 'w+') as destination_file:
-    json.dump(json_f, destination_file)
+    json.dump(json_f, destination_file, ensure_ascii=False)
