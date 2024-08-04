@@ -47,6 +47,8 @@ class FacebookBasePage(BasePage):
 
 
 class FacebookGroupPage(FacebookBasePage):
+    PHOTO_DETAILS_LINK = '//img[@alt and @height and @width]/../../../../parent::a[@role="link"]'
+
     def __init__(self, page, group_name):
         super().__init__(page)
         self.group_name = group_name
@@ -55,6 +57,22 @@ class FacebookGroupPage(FacebookBasePage):
     def navigate_to_albums(self):
         self.page.goto(f'{self.BASE_URL}/{self.group_name}/photos_albums')
         return FacebookAlbumsPage(self.page)
+
+    def open_first_photo_details(self):
+        self.page.locator(self.PHOTO_DETAILS_LINK).element_handles()[0].click()
+        return FacebookPhotoDetailsPage(self.page)
+
+    def navigate_to_photos_by_page(self):
+        self.page.goto(f'{self.BASE_URL}/{self.group_name}/photos_by')
+        return FacebookPhotosByPage(self.page)
+
+
+class FacebookPhotosByPage(FacebookBasePage):
+    PHOTO_DETAILS_LINKS = '//img[@alt]/parent::a[@role="link"]'
+
+    def open_first_photo_details(self):
+        self.page.locator(self.PHOTO_DETAILS_LINKS).element_handles()[0].click()
+        return FacebookPhotoDetailsPage(self.page)
 
 
 class FacebookAlbumsPage(FacebookBasePage):
