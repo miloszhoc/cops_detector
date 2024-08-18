@@ -1,4 +1,5 @@
 from playwright.sync_api import Page
+
 from utils import websites_to_scap
 from playwright._impl._errors import TimeoutError, Error
 
@@ -35,8 +36,8 @@ class FacebookBasePage(BasePage):
     def __init__(self, page):
         super().__init__(page)
 
-    def close_login_info_modal(self):
-        self.page.get_by_label("Zamknij").click()
+    def close_login_info_modal(self, timeout: int = 1000):
+        self.page.get_by_label("Zamknij").click(timeout=timeout)
 
     def close_allow_all_files_modal(self):
         self.page.get_by_role("button", name="Zezwól na wszystkie pliki").click()
@@ -105,7 +106,6 @@ class FacebookPhotoDetailsPage(FacebookBasePage):
     ALT_IMAGE_LOCATOR = '//img[@data-visualcompletion="media-vc-image"]'
 
     def hover_over_photo(self):
-        print('DEBUG', self.page.url)
         try:
             self.page.get_by_role("img", name="Brak dostępnego opisu zdjęcia.").hover(timeout=1000)
         except (TimeoutError, Error):
@@ -125,13 +125,32 @@ class FacebookPhotoDetailsPage(FacebookBasePage):
         self.page.get_by_role("button", name="Wyświetl więcej").element_handles()[0].click()
 
     def get_photo_description(self):
-        return self.page.locator('//a[contains(@href, "hashtag")]/../parent::span[@dir="auto"]').inner_text(
-            timeout=2000)
+        """
+        :return: Photo description if exists, else return NO_PHOTO_DESCRIPTION
+        """
+        try:
+            photo_description = self.page.locator(
+                '//a[contains(@href, "hashtag")]/../parent::span[@dir="auto"]').inner_text(
+                timeout=2000)
+        except TimeoutError:
+            photo_description = 'NO_PHOTO_DESCRIPTION'
+        return photo_description
 
     def get_image_url(self):
-        img_url = self.page.locator(self.IMAGE_LOCATOR).element_handles()[0].get_attribute('src')
+        try:
+            img_url = self.page.locator(self.IMAGE_LOCATOR).element_handles()[0].get_attribute('src')
+        except:
+            img_url = 'NO_URL'
         return img_url
 
     def click_next_picture(self, timeout: float = 3000):
         self.hover_over_photo()
         self.page.get_by_label("Następne zdjęcie").click(timeout=timeout)
+
+    def expand_photo_description(self):
+        try:
+            if self.show_more_button_is_visible():
+                self.click_first_show_more_button()
+                self.wait_for_page_to_load(300)
+        except (TimeoutError, Error, IndexError):
+            pass
