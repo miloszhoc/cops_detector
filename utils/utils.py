@@ -1,10 +1,11 @@
-import asyncio
 import json
 import re
 import time
 from urllib.parse import unquote
-
+import pathlib
 import boto3
+
+TEST_DATA_PATH = pathlib.Path('test_data/group_photos/')
 
 
 def extract_data_from_urls(urls):
@@ -30,6 +31,20 @@ def extract_data_from_urls(urls):
 
 def add_timestamp(input_str, ext='jpg'):
     return f'{input_str}_{int(time.time())}.{ext}'
+
+
+def split_file_into_chunks(file_path, no_of_elements_in_chunk):
+    with open(file_path, 'r') as f:
+        full_list = json.load(f)
+        file_path = f.name.split('.')[0]
+    chunks = []
+    for item in range(0, len(full_list), no_of_elements_in_chunk):
+        chunks.append(full_list[item:item + no_of_elements_in_chunk])
+
+    for i, chunk in enumerate(chunks):
+        with open(f'{file_path}_{i}.json', 'w+') as f:
+            json.dump(chunk, f, ensure_ascii=False)
+    return chunks
 
 
 async def upload_file_to_s3(semaphore, bucket_name, local_file_path):
