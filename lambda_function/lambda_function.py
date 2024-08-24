@@ -1,4 +1,5 @@
 import json
+import time
 
 import boto3
 import google.generativeai as genai
@@ -55,6 +56,7 @@ def lambda_handler(event, context):
             response = model.generate_content(prompt)
             print(response.text)
             item['llm_extracted'] = json.loads(response.text)
+        time.sleep(1)
 
         destination_json_content = get_file_content_from_s3(event['destination_filename'])
         destination_json_content.extend(source_json_content)
