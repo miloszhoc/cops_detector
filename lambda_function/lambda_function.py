@@ -27,21 +27,20 @@ def upload_to_s3(file_name, bucket, object_name=None):
 
 
 def lambda_handler(event, context):
-    source_json_content = get_file_content_from_s3(event['source_filename'])
+    item = json.loads(event['source_item'])
 
     genai.configure(api_key=os.environ["GEMINI_API_KEY"])
     model = genai.GenerativeModel('gemini-1.5-flash',
                                   generation_config={"response_mime_type": "application/json"})
 
     with tempfile.NamedTemporaryFile(mode='w+', suffix='.json', delete=False) as temp_file:
-        for item in source_json_content[:2]:
-            try:
-                item['llm_extracted']
-            except KeyError:
-                prompt = f"""
-                        {item['description']}
+        prompt = f"""
+                    {item['description']}
             
-                        From the above information presented in Polish, extract the Polish name of the province and city, make and model of car, current Polish vehicle registration number consisting of numbers and letters. If there are, previous registration numbers and Polish numbers of roads on which the vehicle moves. save the results in json format with the structure:
+                        From the above information presented in Polish, extract the Polish name of the province and city, 
+                        make and model of car, current Polish vehicle registration number consisting of numbers and letters. 
+                        If there are, previous registration numbers and Polish numbers of roads on which the vehicle moves. 
+                        save the results in json format with the structure:
                         {{voivodeship : province name (string),
                         city: city (string),
                         car_info: car make and model (string),
@@ -49,22 +48,22 @@ def lambda_handler(event, context):
                         old_license_plates: previous registration numbers (list),
                         road_numbers: Polish numbers of roads on which the vehicle moves (list),
                         }}
-                        if data is missing, leave blank. Return only the json structure and nothing else.
+                        If data is missing, leave blank. Return only the json structure and nothing else.
                         """
-            else:
-                print('NOTHING TO DO')
-            response = model.generate_content(prompt)
-            print(response.text)
-            item['llm_extracted'] = json.loads(response.text)
-        time.sleep(1)
+        response = model.generate_content(prompt)
+        print(response.text)
+        item['llm_extracted'] = json.loads(response.text)
+        destination_json_content = get_file_content_from_s3('data.json')
+        print('destination_json_content before extend', destination_json_content)
+        destination_json_content.append(item)
+        print('destination_json_content after extend', destination_json_content)
 
-        destination_json_content = get_file_content_from_s3(event['destination_filename'])
-        destination_json_content.extend(source_json_content)
         json.dump(destination_json_content, temp_file, indent=3, ensure_ascii=False)
+        temp_file.seek(0)
 
         temp_file_name = temp_file.name
 
-    upload_to_s3(temp_file_name, 'cops-detector-pictures', event['destination_filename'])
+        upload_to_s3(temp_file_name, 'cops-detector-pictures', 'data.json')
 
     return {'statusCode': 200,
             'body': response.text}
